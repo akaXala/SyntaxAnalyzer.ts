@@ -3,6 +3,10 @@ Segundo proyecto de Compiladores: Un Analizador Sintáctico en TypeScript montad
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Nota
+
+Para importar archivos usar *@/...*, esto para que todas las importaciones sean del mismo tipo y estas sean más precisas
+
 ## Getting Started
 
 Para instalar las dependencias usamos **yarn**
