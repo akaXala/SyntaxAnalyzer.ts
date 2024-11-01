@@ -5,7 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Nota
 
-Para importar archivos usar *@/...*, esto para que todas las importaciones sean del mismo tipo y estas sean más precisas
+Para importar archivos usar *"@/..."* esto para que todas las importaciones sean del mismo tipo y estas sean más precisas
 
 ## Getting Started
 
