@@ -15,7 +15,6 @@
 
 */
 
-
 // Clase para representar un nodo de la lista
 class ListNode<T> {
     value: T;
@@ -65,10 +64,21 @@ class LinkedList<T> {
     }
 
     // Método para buscar un valor en la lista
-    find(value: T): ListNode<T> | null {
+    findAlter(value: T): ListNode<T> | null {
         let current = this.head;
         while (current !== null) {
             if (current.value === value) return current;
+            current = current.next;
+        }
+        return null;
+    }
+
+    find(predicate: (value: T) => boolean): ListNode<T> | null {
+        let current = this.head;
+        while (current !== null) {
+            if (predicate(current.value)) {
+                return current;
+            }
             current = current.next;
         }
         return null;
@@ -90,3 +100,5 @@ class LinkedList<T> {
 // list.append(2);
 // list.append(3);
 // list.print(); // Output: 1 2 3
+
+export { ListNode, LinkedList };
