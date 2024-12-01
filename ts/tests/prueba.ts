@@ -1,5 +1,10 @@
 import { SyntaxAnalyzer, NodeSimb } from "@/ts/SyntaxAnalyzer";
 
+
+
+
+
+
 function testFollow() {
   // Creación de símbolos terminales y no terminales
   const epsilon = new NodeSimb("Epsilon", true);

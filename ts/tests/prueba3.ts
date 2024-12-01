@@ -4,13 +4,13 @@ import { SyntaxAnalyzer } from '@/ts/SyntaxAnalyzer';
 function testGrammarFirstFollow() {
     // Crear una instancia de Grammar
     const grammar = new Grammar();
-
+    
     // Definir la gramática usando el formato de cadenas
-    grammar.addRule('< E > -> < T > < Ep >');
-    grammar.addRule('< Ep > -> + < T > < Ep > | - < T > < Ep > | Epsilon');
-    grammar.addRule('< T > -> < F > < Tp >');
-    grammar.addRule('< Tp > -> * < F > < Tp > | / < F > < Tp > | Epsilon');
-    grammar.addRule('< F > -> ( < E > ) | Num');
+    grammar.addRule('<E> -> <T> <Ep>');
+    grammar.addRule('<Ep> -> + <T> <Ep> | Epsilon');
+    grammar.addRule('<T> -> <F> <Tp>');
+    grammar.addRule('<Tp> -> * <F> <Tp> | Epsilon');
+    grammar.addRule('<F> -> ( <E> ) | id');
 
     // Convertir a formato de SyntaxAnalyzer
     const rules = grammar.toSyntaxAnalyzerFormat();
@@ -33,16 +33,19 @@ function testGrammarFirstFollow() {
     // Pruebas del método FOLLOW
     console.log("Follow(E):", analyzer.follow(E)); // Esperado: { ")" , "$" }
     console.log("Follow(Ep):", analyzer.follow(Ep)); // Esperado: { ")" , "$" }
-    console.log("Follow(T):", analyzer.follow(T)); // Esperado: { "+", "-", ")" , "$" }
-    console.log("Follow(Tp):", analyzer.follow(Tp)); // Esperado: { "+", "-", ")" , "$" }
-    console.log("Follow(F):", analyzer.follow(F)); // Esperado: { "*", "/", "+", "-", ")" , "$" }
+    console.log("Follow(T):", analyzer.follow(T)); // Esperado: { "+", ")" , "$" }
+    console.log("Follow(Tp):", analyzer.follow(Tp)); // Esperado: { "+", ")" , "$" }
+    console.log("Follow(F):", analyzer.follow(F)); // Esperado: { "*", "+", ")" , "$" }
 
     // Pruebas del método FIRST
-    console.log("First(E):", analyzer.first([E])); // Esperado: { "(", "Num" }
-    console.log("First(Ep):", analyzer.first([Ep])); // Esperado: { "+", "-", "Epsilon" }
-    console.log("First(T):", analyzer.first([T])); // Esperado: { "(", "Num" }
-    console.log("First(Tp):", analyzer.first([Tp])); // Esperado: { "*", "/", "Epsilon" }
-    console.log("First(F):", analyzer.first([F])); // Esperado: { "(", "Num" }
+    console.log("First(E):", analyzer.first([E])); // Esperado: { "(", "id" }
+    console.log("First(Ep):", analyzer.first([Ep])); // Esperado: { "+", "Epsilon" }
+    console.log("First(T):", analyzer.first([T])); // Esperado: { "(", "id" }
+    console.log("First(Tp):", analyzer.first([Tp])); // Esperado: { "*", "Epsilon" }
+    console.log("First(F):", analyzer.first([F])); // Esperado: { "(", "id" }
+
+    //console.log("Ver array con símbolos no terminales:");
+    //console.log(rules);
 }
 
-export { testGrammarFirstFollow }; 
+export { testGrammarFirstFollow };
