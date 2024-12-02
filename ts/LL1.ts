@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Stack } from '@/ts/tools/Stack';
+import { SyntaxAnalyzer } from '@/ts/SyntaxAnalyzer';
 
 class LL1 {
   parsingTable: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
@@ -16,32 +17,42 @@ class LL1 {
 
   */
 
-  // GRAMATICA DE ARITMÉTICA
-  
   firstSets: { [key: string]: Set<string> } = {
-    E: new Set(['(', 'id']),
-    Ep: new Set(['+', 'Epsilon']),
-    T: new Set(['(', 'id']),
-    Tp: new Set(['*', 'Epsilon']),
-    F: new Set(['(', 'id']),
   };
 
   followSets: { [key: string]: Set<string> } = {
-    E: new Set(['$', ')']),
-    Ep: new Set(['$', ')']),
-    T: new Set(['+', '$', ')']),
-    Tp: new Set(['+', '$', ')']),
-    F: new Set(['*', '+', '$', ')']),
   };
 
-  grammar: { [nonTerminal: string]: string[][] } = {
-    E: [['T', 'Ep']],
-    Ep: [['+', 'T', 'Ep'], ['Epsilon']],
-    T: [['F', 'Tp']],
-    Tp: [['*', 'F', 'Tp'], ['Epsilon']],
-    F: [['(', 'E', ')'], ['id']],
+  grammar: { [nonTerminal: string]: Array<Array<string>> } = {
   };
-  
+
+
+  // GRAMATICA DE ARITMÉTICA
+
+  //firstSets: { [key: string]: Set<string> } = {
+  //  E: new Set(['(', 'id']),
+  //  Ep: new Set(['+', 'EPSILON']),
+  //  T: new Set(['(', 'id']),
+  //  Tp: new Set(['*', 'EPSILON']),
+  //  F: new Set(['(', 'id']),
+  //};
+
+  //followSets: { [key: string]: Set<string> } = {
+  //  E: new Set(['$', ')']),
+  //  Ep: new Set(['$', ')']),
+  //  T: new Set(['+', '$', ')']),
+  //  Tp: new Set(['+', '$', ')']),
+  //  F: new Set(['*', '+', '$', ')']),
+  //};
+
+  //grammar: { [nonTerminal: string]: string[][] } = {
+  //  E: [['T', 'Ep']],
+  //  Ep: [['+', 'T', 'Ep'], ['EPSILON']],
+  //  T: [['F', 'Tp']],
+  //  Tp: [['*', 'F', 'Tp'], ['EPSILON']],
+  //  F: [['(', 'E', ')'], ['id']],
+  //};
+
 
 
 
@@ -65,142 +76,122 @@ class LL1 {
     A: [['id', ':=', 'id']],
   };
   */
+
+
+
+
+
+  // GRAMATICA DE LISTAS
+  /*
+  firstSets: { [key: string]: Set<string> } = {
+   L: new Set(['id']),
+   Lp: new Set([',', 'EPSILON']),
+ };
+ 
+ followSets: { [key: string]: Set<string> } = {
+   L: new Set(['$', ',']),
+   Lp: new Set(['$', ',']),
+ };
+ 
+ grammar: { [nonTerminal: string]: string[][] } = {
+   L: [['id', 'Lp']],
+   Lp: [[',', 'id', 'Lp'], ['EPSILON']],
+ };
+ */
+
+
+
+
+  // GRAMATICA DE EXPRESIONES BOOLEANAS
+  /*
+  firstSets: { [key: string]: Set<string> } = {
+    B: new Set(['id']),
+    Bp: new Set(['and', 'EPSILON']),
+    L: new Set(['id']),
+  };
   
+  followSets: { [key: string]: Set<string> } = {
+    B: new Set(['$', ')']),
+    Bp: new Set(['$', ')']),
+    L: new Set(['$', 'and', ')']),
+  };
+  
+  grammar: { [nonTerminal: string]: string[][] } = {
+    B: [['L', 'Bp']],
+    Bp: [['and', 'L', 'Bp'], ['EPSILON']],
+    L: [['id']],
+  };
+  */
 
 
 
-
- // GRAMATICA DE LISTAS
- /*
- firstSets: { [key: string]: Set<string> } = {
-  L: new Set(['id']),
-  Lp: new Set([',', 'Epsilon']),
-};
-
-followSets: { [key: string]: Set<string> } = {
-  L: new Set(['$', ',']),
-  Lp: new Set(['$', ',']),
-};
-
-grammar: { [nonTerminal: string]: string[][] } = {
-  L: [['id', 'Lp']],
-  Lp: [[',', 'id', 'Lp'], ['Epsilon']],
-};
-*/
-
-
-
-
-// GRAMATICA DE EXPRESIONES BOOLEANAS
-/*
-firstSets: { [key: string]: Set<string> } = {
-  B: new Set(['id']),
-  Bp: new Set(['and', 'Epsilon']),
-  L: new Set(['id']),
-};
-
-followSets: { [key: string]: Set<string> } = {
-  B: new Set(['$', ')']),
-  Bp: new Set(['$', ')']),
-  L: new Set(['$', 'and', ')']),
-};
-
-grammar: { [nonTerminal: string]: string[][] } = {
-  B: [['L', 'Bp']],
-  Bp: [['and', 'L', 'Bp'], ['Epsilon']],
-  L: [['id']],
-};
-*/
-
-
-
-// GRAMATICA DE WHILE
-/*
-firstSets: { [key: string]: Set<string> } = {
-  S: new Set(['while', 'id']),
-  C: new Set(['id']),
-  A: new Set(['id']),
-};
-
-followSets: { [key: string]: Set<string> } = {
-  S: new Set(['$', 'do']),
-  C: new Set(['do']),
-  A: new Set(['$', 'do']),
-};
-
-grammar: { [nonTerminal: string]: string[][] } = {
-  S: [['while', 'C', 'do', 'S'], ['A']],
-  C: [['id', '>', 'id']],
-  A: [['id', ':=', 'id']],
-};
-*/
+  // GRAMATICA DE WHILE
+  /*
+  firstSets: { [key: string]: Set<string> } = {
+    S: new Set(['while', 'id']),
+    C: new Set(['id']),
+    A: new Set(['id']),
+  };
+  
+  followSets: { [key: string]: Set<string> } = {
+    S: new Set(['$', 'do']),
+    C: new Set(['do']),
+    A: new Set(['$', 'do']),
+  };
+  
+  grammar: { [nonTerminal: string]: string[][] } = {
+    S: [['while', 'C', 'do', 'S'], ['A']],
+    C: [['id', '>', 'id']],
+    A: [['id', ':=', 'id']],
+  };
+  */
 
 
 
   constructor(private outputDir: string = './') {
     this.stack = new Stack<string>();
   }
+  init(SA: SyntaxAnalyzer): void {
+    console.log(SA.G_Rules);
+    const Rules = SA.getG_Rules();
+    const findNode = (name: string) => Rules.find(r => r.nameSimb.nameSimb === name)?.nameSimb;
+    const findNodes = (name: string) => SA.G_Rules.filter(r => r.nameSimb.nameSimb === name)
+    const followSets: { [key: string]: Set<string> } = {};
+    const firstSets: { [key: string]: Set<string> } = {};
+    const grammar: { [nonTerminal: string]: Array<Array<string>> } = {}
 
-/*
+    SA.nonTerminal.forEach((nonTerminal) => {
+      let nodes = findNodes(nonTerminal);
+      let production: string[];
+      nodes.forEach((x) => {
+        if (x.nameSimb.nameSimb === nonTerminal) {
+          if (!grammar[nonTerminal]) grammar[nonTerminal] = []
+          production = []
+          x.list.forEach((y) => {
+            //console.log(y.nameSimb, y.terminal);
+            production.push(y.nameSimb)
+          });
+          //console.log(production);
+          grammar[nonTerminal].push(production);
+        };
+      })
+    });
+    const noTerminals = [...SA.nonTerminal];
+    for (let i = 0; i < noTerminals.length; i++) {
 
-### 1. generateParsingTable()
-Este método construye la tabla de parsing LL(1), que es esencial para que el analizador sintáctico sepa qué reglas aplicar en cada paso del análisis.
+      const node = findNode(noTerminals[i]);
+      followSets[noTerminals[i]] = SA.follow(node!);
+      firstSets[noTerminals[i]] = SA.first([node!]);
+    }
+    this.followSets = followSets;
+    this.firstSets = firstSets;
+    this.grammar = grammar;
+    console.log(":::Test:::");
+    console.log(this.followSets);
+    console.log(this.firstSets);
+    console.log(this.grammar);
+  }
 
-#### Pasos detallados:
-
-1. Inicialización de la tabla:
-   typescript
-   const table: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
-   
-   Se crea una tabla vacía, que tendrá como claves los no terminales de la gramática y, para cada uno de ellos, un conjunto de entradas que indican qué producción aplicar para cada terminal posible.
-
-2. Recorrer cada no terminal y sus producciones:
-   typescript
-   for (const [nonTerminal, productions] of Object.entries(this.grammar)) {
-     table[nonTerminal] = {};
-   
-   La gramática está almacenada como un objeto donde cada clave es un no terminal y su valor es un arreglo de producciones. Por ejemplo, E: [['T', 'Ep']].
-
-3. Procesar las producciones para cada no terminal:
-   Cada producción de un no terminal es analizada para calcular qué terminales pueden aparecer en el inicio de una derivación a partir de esa producción. Esto se hace utilizando el conjunto First.
-
-   - Para cada producción, obtiene su conjunto First mediante la función getFirstSet:
-     typescript
-     const firstSet = this.getFirstSet(production);
-     
-
-   - Si el conjunto First de la producción contiene terminales, se agregan a la tabla:
-     typescript
-     for (const terminal of firstSet) {
-       if (terminal !== 'Epsilon') {
-         table[nonTerminal][terminal] = production;
-       }
-     }
-     
-
-     Es decir, se agregan las producciones a la tabla para cada terminal que esté en el conjunto First de la producción. Si un no terminal produce una secuencia que empieza con un terminal, la tabla indica que esa producción se debe aplicar cuando se encuentre ese terminal en la entrada.
-
-   - Manejo de Epsilon: Si un conjunto First contiene Epsilon, entonces debemos considerar los terminales del conjunto Follow del no terminal. Esto se hace para manejar el caso en que la producción puede generar una secuencia vacía.
-
-     typescript
-     if (firstSet.has('Epsilon')) {
-       const followSet = this.followSets[nonTerminal];
-       for (const terminal of followSet) {
-         table[nonTerminal][terminal] = ['Epsilon'];
-       }
-     }
-     
-
-     En este paso, se agrega la producción Epsilon a la tabla para todos los terminales en el conjunto Follow de ese no terminal. Esto permite que el analizador maneje producciones que pueden ser vacías (como Epsilon).
-
-4. Guardar la tabla de parsing:
-   Finalmente, la tabla generada se guarda como un archivo JSON en el directorio especificado (outputDir), lo que permite almacenarla y usarla posteriormente en el proceso de análisis sintáctico.
-
-   typescript
-   fs.writeFileSync(filePath, JSON.stringify(this.parsingTable, null, 2), 'utf-8');
-
-
-*/
   generateParsingTable(): void {
     const table: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
 
@@ -215,19 +206,19 @@ Este método construye la tabla de parsing LL(1), que es esencial para que el an
         // Agregar la producción a la tabla para cada terminal en el conjunto first
         for (const terminal of firstSet) {
 
-          // Si el terminal es Epsilon, no agregarlo a la tabla
-          if (terminal !== 'Epsilon') {
+          // Si el terminal es EPSILON, no agregarlo a la tabla
+          if (terminal !== 'EPSILON') {
             table[nonTerminal][terminal] = production;
           }
         }
 
-        // Si Epsilon está en el conjunto first, agregar la producción a la tabla para cada terminal en el conjunto follow
-        if (firstSet.has('Epsilon')) {
+        // Si EPSILON está en el conjunto first, agregar la producción a la tabla para cada terminal en el conjunto follow
+        if (firstSet.has('EPSILON')) {
           const followSet = this.followSets[nonTerminal];
           for (const terminal of followSet) {
 
-            // Si el terminal es Epsilon, no agregarlo a la tabla
-            table[nonTerminal][terminal] = ['Epsilon'];
+            // Si el terminal es EPSILON, no agregarlo a la tabla
+            table[nonTerminal][terminal] = ['EPSILON'];
           }
         }
       }
@@ -264,8 +255,8 @@ Este método construye la tabla de parsing LL(1), que es esencial para que el an
           firstSet.add(terminal);
         }
 
-        // Si Epsilon no está en el conjunto first del símbolo, detener la iteración
-        if (!this.firstSets[symbol].has('Epsilon')) {
+        // Si EPSILON no está en el conjunto first del símbolo, detener la iteración
+        if (!this.firstSets[symbol].has('EPSILON')) {
           break;
         }
         // Si el símbolo es un no terminal, agregar el conjunto first del no terminal al conjunto first de la producción
@@ -334,8 +325,9 @@ Este método construye la tabla de parsing LL(1), que es esencial para que el an
         // Si la producción existe en la tabla de parsing, desapilar y apilar la producción
         if (production) {
           this.stack.pop();
-          // Si la producción no es Epsilon, apilar los símbolos de la producción en orden inverso
-          if (!(production.length === 1 && production[0] === 'Epsilon')) {
+
+          if (!(production.length === 1 && production[0] === 'EPSILON')) {
+
             for (let i = production.length - 1; i >= 0; i--) {
               this.stack.push(production[i]);
             }
@@ -375,12 +367,21 @@ function testLL1(): void {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
+
+
   const parser = new LL1(outputDir);
+  const SA = new SyntaxAnalyzer();
+  let input = "<S> -> while <C> do <S> | <A>;\n" +
+    "<C> -> id > id ;\n" +
+    "<A> -> id := id"
+  SA.setGrammar(input);
+  SA.parse();
+  parser.init(SA);
   parser.generateParsingTable();
 
   // input de aritmética
-  const inputString = 'id + id * id';
-  
+  //const inputString = 'id + id * id';
+
   // input de if-else
   //const inputString = 'if id = id then id := id else id := id';
 
@@ -391,7 +392,7 @@ function testLL1(): void {
   //const inputString = 'id and id and id';
 
   // input de while
-  // const inputString = 'while id > id do id := id';
+  const inputString = 'while id > id do id := id';
 
 
   parser.parse(inputString);
