@@ -1,9 +1,5 @@
 class Stack<T> {
-<<<<<<< HEAD
-    private storage: T[] = [];
-=======
     storage: T[] = [];
->>>>>>> Danna
 
     constructor(private capacity: number = Infinity) { }
 
