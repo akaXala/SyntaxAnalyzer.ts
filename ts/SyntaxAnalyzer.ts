@@ -1,6 +1,6 @@
 import { LexicAnalyzer } from "./LexicAnalyzer";
 import JSON from "@/ts/AFD/Grammar.json"
-const DEBUG = false;
+const DEBUG = true;
 /* 
 
 # Clase para el analizador sintáctico:
@@ -80,8 +80,6 @@ class SyntaxAnalyzer {
   LA: LexicAnalyzer;
   numberRules: number;
 
-
-
   constructor(rules?: Array<{ nameSimb: NodeSimb; list: NodeSimb[] }>) {
     //if(DEBUG)console.log(JSON)
     this.G_Rules = rules || [];
@@ -95,6 +93,10 @@ class SyntaxAnalyzer {
   public setGrammar(grammar: string): void {
     this.grammar = grammar;
     this.LA.setSigma(grammar);
+    this.G_Rules = [];
+    this.terminal = new Set<string>();
+    this.nonTerminal = new Set<string>();
+    this.numberRules = 0;
   }
 
   first(L: NodeSimb[]): Set<string> {
@@ -187,6 +189,10 @@ class SyntaxAnalyzer {
         return true;
       }
     }
+    this.nonTerminal = new Set<string>();
+    this.terminal = new Set<string>();
+    this.numberRules = 0;
+    this.G_Rules = [];
     if (DEBUG) console.log("\tparse:::G its false");
     return false;
   }
