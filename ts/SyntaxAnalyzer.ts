@@ -1,6 +1,6 @@
 import { LexicAnalyzer } from "./LexicAnalyzer";
 import JSON from "@/ts/AFD/Grammar.json"
-const DEBUG = true;
+const DEBUG = false;
 /* 
 
 # Clase para el analizador sintáctico:
@@ -98,19 +98,26 @@ class SyntaxAnalyzer {
     this.nonTerminal = new Set<string>();
     this.numberRules = 0;
   }
+  public getG_Rules(): Array<{ nameSimb: NodeSimb; list: NodeSimb[] }> {
+    return this.G_Rules;
+  }
 
   first(L: NodeSimb[]): Set<string> {
+    //console.log("L", L);
     let R: Set<string> = new Set<string>();
     let L2: NodeSimb[];
 
     // Caso en que el primer símbolo en L es terminal
+
     if (L[0].terminal) {
       R.add(L[0].nameSimb);
       return R;
     }
 
     // Si L[0] es no terminal, se recorren las reglas de producción
+
     for (let i = 0; i < this.G_Rules.length; i++) {
+      //console.log("//entro con i :", i, "L[0].nameSimb", L[0].nameSimb, "G_Rules[i].nameSimb.nameSimb", this.G_Rules[i].nameSimb.nameSimb);
       if (this.G_Rules[i].nameSimb.nameSimb === L[0].nameSimb) {
         // Donde R es el conjunto de terminales y/o epsilons
         // Añadir el conjunto First de la lista de la regla coincidente
@@ -119,7 +126,7 @@ class SyntaxAnalyzer {
     }
 
     // Si R no contiene "Epsilon", retornamos
-    if (!R.has("Epsilon")) {
+    if (!R.has("EPSILON")) {
       return R;
     }
 
@@ -129,7 +136,7 @@ class SyntaxAnalyzer {
     }
 
     // Eliminar "Epsilon" y calcular First del resto de la lista
-    R.delete("Epsilon");
+    R.delete("EPSILON");
     // Revisar si es equivalente al metodo de C# de copyto
     L2 = [...L]; // Copia de L
     L2.shift();  // Remover el primer elemento de L 
@@ -165,10 +172,10 @@ class SyntaxAnalyzer {
         const LAux = rule.list.slice(index + 1);
         RAux = this.first(LAux);
 
-        if (!RAux.has("Epsilon")) {
+        if (!RAux.has("EPSILON")) {
           R = new Set([...R, ...RAux]);
         } else {
-          RAux.delete("Epsilon");
+          RAux.delete("EPSILON");
           R = new Set([...R, ...RAux]);
 
           if (rule.nameSimb.nameSimb !== simb.nameSimb) {
@@ -186,6 +193,9 @@ class SyntaxAnalyzer {
       const token = this.LA.yylex();
       if (DEBUG) console.log("\tparse:::G its true and next token is: " + token);
       if (token === TOKEN.END) {
+        for (const rule of this.G_Rules) {
+          rule.list.reverse()
+        }
         return true;
       }
     }
