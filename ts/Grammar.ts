@@ -8,7 +8,9 @@ interface Production {
 
 class Grammar {
   private nonTerminals: string[] = [];  // Array para símbolos no terminales
+  private terminals: string[] = [];  // Array para símbolos terminales
   private productions: Map<string, LinkedList<Production>> = new Map();  // Map de no terminal a sus producciones
+  
 
   constructor() {
     this.nonTerminals = [];
