@@ -1,10 +1,9 @@
 import { LexicAnalyzer } from "./LexicAnalyzer";
 import JSON from "@/ts/AFD/Grammar.json"
+const DEBUG = false;
 /* 
 
 # Clase para el analizador sintáctico:
-
-
 
 ## Métodos:
 
@@ -49,13 +48,13 @@ OMIT ((\\ )+)OR(
 */
 enum TOKEN {
   END = 0,
-  OMIT = 10,
-  FLECHA = 20,
-  DOTCOMMA = 30,
-  NONTERMINAL = 40,
-  EPSILON = 50,
-  OR = 60,
-  TERMINAL = 70
+  NONTERMINAL = 10,
+  OR = 20,
+  FLECHA = 30,
+  EPSILON = 40,
+  DOTCOMMA = 50,
+  TERMINAL = 60,
+  OMIT = 70
 }
 interface Symbol {
   data: string;
@@ -78,17 +77,24 @@ class SyntaxAnalyzer {
   terminal: Set<string>;
   nonTerminal: Set<string>;
   grammar: string;
-  LA: LexicAnalyzer = new LexicAnalyzer(JSON);
+  LA: LexicAnalyzer;
   numberRules: number;
 
 
 
   constructor(rules?: Array<{ nameSimb: NodeSimb; list: NodeSimb[] }>) {
+    //if(DEBUG)console.log(JSON)
     this.G_Rules = rules || [];
     this.grammar = "";
     this.nonTerminal = new Set<string>();
     this.terminal = new Set<string>();
     this.numberRules = 0;
+    this.LA = new LexicAnalyzer(JSON);
+    this.LA.setTokenOmision(TOKEN.OMIT);
+  }
+  public setGrammar(grammar: string): void {
+    this.grammar = grammar;
+    this.LA.setSigma(grammar);
   }
 
   first(L: NodeSimb[]): Set<string> {
@@ -173,145 +179,205 @@ class SyntaxAnalyzer {
     return R;
   }
   public parse(): boolean {
+    if (DEBUG) console.log("I'm in parse");
     if (this.g()) {
       const token = this.LA.yylex();
+      if (DEBUG) console.log("\tparse:::G its true and next token is: " + token);
       if (token === TOKEN.END) {
         return true;
       }
     }
+    if (DEBUG) console.log("\tparse:::G its false");
     return false;
   }
   private g(): boolean {
+    if (DEBUG) console.log("I'm in G");
     if (this.rules()) {
+      if (DEBUG) console.log("\tG:::Rules its true");
       return true;
     }
+    if (DEBUG) console.log("\tG:::Rules its false");
     return false;
   }
   private rules(): boolean {
+    if (DEBUG) console.log("I'm in Rules");
     if (this.rule()) {
       const token: number = this.LA.yylex();
+      if (DEBUG) console.log("\trules:::Rule its true and next token is: " + token);
       if (token === TOKEN.DOTCOMMA) {
         if (this.rulesP()) {
+          if (DEBUG) console.log("\trules:::RulesP its true");
           return true;
         }
       }
       //this.LA.undoToken()
     }
+    if (DEBUG) console.log("\trules:::Rule its false");
     return false
   }
 
   private rulesP(): boolean {
+    if (DEBUG) console.log("I'm in RulesP");
     const currentLA: LexicAnalyzer = new LexicAnalyzer();
     currentLA.setState(this.LA.getState());
     if (this.rule()) {
-      const token: number = currentLA.yylex();
+      if (DEBUG) console.log("\tRulesP:::Rule its true");
+      const token: number = this.LA.yylex();
+      if (DEBUG) console.log("\tRulesP:::token is: " + token, this.LA.yytext());
       if (token === TOKEN.DOTCOMMA) {
         if (this.rulesP()) {
+          if (DEBUG) console.log("\tRulesP:::RulesP its true");
           return true;
         }
       }
-      //this.LA.undoToken();
-      return false;
+      this.LA.undoToken();
+      return true;
     }
+    if (DEBUG) console.log("\tRulesP:::Rule its false");
     this.LA.setState(currentLA.getState());
     return true;
   }
   private rule(): boolean {
+    if (DEBUG) console.log("I'm in Rule");
     const nonTerminal: Symbol = { data: "" };
     if (this.leftSide(nonTerminal)) {
+      if (DEBUG) console.log("\tRule:::LeftSide its true");
       const token: number = this.LA.yylex();
+      if (DEBUG) console.log("\tRule:::Token: " + token);
       if (token === TOKEN.FLECHA) {
         if (this.rightSides(nonTerminal)) {
+          if (DEBUG) console.log("\tRule:::RightSides its true");
           return true;
         }
+        if (DEBUG) console.log("\tRule:::RightSides its false");
       }
     }
+    if (DEBUG) console.log("\tRule:::LeftSide its false");
     return false;
   }
   private leftSide(nonTerminal: Symbol): boolean {
+    if (DEBUG) console.log("I'm in LeftSide");
     const token: number = this.LA.yylex();
+    if (DEBUG) console.log("Token: " + token);
     if (token === TOKEN.NONTERMINAL) {
       nonTerminal.data = this.LA.yytext();
       nonTerminal.data = nonTerminal.data.substring(1, nonTerminal.data.length - 1);
+      nonTerminal.data.replace(/(?<!\\)\\(?!\\)/g, "");
+      this.nonTerminal.add(nonTerminal.data);
+      if (DEBUG) console.log("NONTERMINAL: " + nonTerminal.data);
       return true;
     }
     //this.LA.undoToken();
     return false;
   }
   private rightSides(nonTerminal: Symbol): boolean {
+    if (DEBUG) console.log("I'm in RightSides");
     const list: NodeSimb[] = new Array<NodeSimb>();
     if (this.rightSide(list)) {
+      if (DEBUG) console.log("\tRightSides:::RightSide its true");
       this.G_Rules[this.numberRules++] = { nameSimb: new NodeSimb(nonTerminal.data, false), list: list };
       if (this.rightSidesP(nonTerminal)) {
+        if (DEBUG) console.log("\tRightSides:::RightSidesP its true");
         return true;
       }
     }
     return false;
   }
   private rightSidesP(nonTerminal: Symbol): boolean {
+    if (DEBUG) console.log("I'm in RightSidesP");
     const list: NodeSimb[] = new Array<NodeSimb>();
     const token: number = this.LA.yylex();
+    if (DEBUG) console.log("\tRightSidesP:::Token: " + token);
     if (token === TOKEN.OR) {
       if (this.rightSide(list)) {
+        if (DEBUG) console.log("\tRigthSidesP:::RightSide its true");
         this.G_Rules[this.numberRules++] = { nameSimb: new NodeSimb(nonTerminal.data, false), list: list };
         if (this.rightSidesP(nonTerminal)) {
+          if (DEBUG) console.log("\tRightSidesP:::RightSidesP its true");
           return true;
         }
       }
+      //return false;
     }
+    if (DEBUG) console.log("\tRightSidesP:::Undo Token");
     this.LA.undoToken();
     return true;
   }
   private rightSide(list: NodeSimb[]): boolean {
+    if (DEBUG) console.log("I'm in RightSide");
     if (this.symbols(list)) {
+      if (DEBUG) console.log("\tRightSide:::symbols its true");
       return true;
     }
+    if (DEBUG) console.log("\tRightSide:::symbols its false");
     return false;
   }
   private symbols(list: NodeSimb[]): boolean {
+    if (DEBUG) console.log("I'm in Symbols");
     const symbol: NodeSimb = new NodeSimb("", false);
     const token: number = this.LA.yylex();
+    if (DEBUG) console.log("\tsymbols:::Token: " + token);
     switch (token) {
       case TOKEN.NONTERMINAL:
         symbol.nameSimb = this.LA.yytext();
         symbol.nameSimb = symbol.nameSimb.substring(1, symbol.nameSimb.length - 1);
+        symbol.nameSimb.replace(/(?<!\\)\\(?!\\)/g, "");
+        if (DEBUG) console.log("\tsymbols:::NONTERMINAL", symbol.nameSimb);
+        this.nonTerminal.add(symbol.nameSimb);
         break;
+      case TOKEN.EPSILON:
       case TOKEN.TERMINAL:
         symbol.nameSimb = this.LA.yytext();
+        symbol.nameSimb.replace(/(?<!\\)\\(?!\\)/g, "");
         symbol.terminal = true;
+        if (DEBUG) console.log("\tsymbols:::TERMINAL", symbol.nameSimb);
+        this.terminal.add(symbol.nameSimb);
         break;
       default:
         this.LA.undoToken();
+        if (DEBUG) console.log("symbols:::Undo Token");
         return false;
     }
     if (this.symbolsP(list)) {
+      if (DEBUG) console.log("symbols:::SymbolsP its true");
       list.push(symbol);
       return true;
     }
+    if (DEBUG) console.log("symbols:::SymbolsP its false");
     return false;
   }
   private symbolsP(list: NodeSimb[]): boolean {
+    if (DEBUG) console.log("I'm in SymbolsP");
     const symbol: NodeSimb = new NodeSimb("", false);
     const token: number = this.LA.yylex();
+    if (DEBUG) console.log("\tSymbolsP:::Token: " + token);
     switch (token) {
       case TOKEN.NONTERMINAL:
         symbol.nameSimb = this.LA.yytext();
         symbol.nameSimb = symbol.nameSimb.substring(1, symbol.nameSimb.length - 1);
-        console.log("NONTERMINAL");
+        symbol.nameSimb.replace(/(?<!\\)\\(?!\\)/g, "");
+        if (DEBUG) console.log("\tSymbolsP:::NONTERMINAL", symbol.nameSimb);
+        this.nonTerminal.add(symbol.nameSimb);
         break;
+      case TOKEN.EPSILON:
       case TOKEN.TERMINAL:
         symbol.nameSimb = this.LA.yytext();
+        symbol.nameSimb.replace(/(?<!\\)\\(?!\\)/g, "");
         symbol.terminal = true;
-        console.log("TERMINAL");
+        if (DEBUG) console.log("\tSymbolsP:::TERMINAL", symbol.nameSimb);
+        this.terminal.add(symbol.nameSimb);
         break;
       default:
+        if (DEBUG) console.log("\tSymbolsP:::Undo Token");
         this.LA.undoToken();
         return true;
     }
     if (this.symbolsP(list)) {
+      if (DEBUG) console.log("\tSymbolsP:::SymbolsP its true");
       list.push(symbol);
       return true;
     }
+    if (DEBUG) console.log("\tSymbolsP:::SymbolsP its false");
     return false;
   }
 

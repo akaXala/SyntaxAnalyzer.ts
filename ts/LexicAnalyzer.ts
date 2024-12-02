@@ -47,6 +47,7 @@ class LexicAnalyzer {
         this.stack = state.stack;
         this.lastLexema = state.lastLexema;
         this.afdTable = state.afdTable;
+        this.tokenOmision = state.tokenOmision;
     }
 
     // Asigna una tabla de un afd con las clases lexicas
@@ -119,7 +120,7 @@ class LexicAnalyzer {
             lexema = this.sigma.substring(this.startLexema, this.endLexema + 1);
             this.currentIndex = this.endLexema + 1;
             this.lastLexema = lexema;
-
+            //console.log("Token: ", this.token, "Lexema: ", lexema);
             if (this.token === this.tokenOmision)
                 return this.yylex();  // Salta los tokens omitidos
             else
