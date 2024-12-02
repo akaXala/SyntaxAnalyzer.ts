@@ -16,8 +16,6 @@ class LL1 {
 
   */
 
-
-
   // GRAMATICA DE ARITMÉTICA
   
   firstSets: { [key: string]: Set<string> } = {
@@ -143,6 +141,66 @@ grammar: { [nonTerminal: string]: string[][] } = {
     this.stack = new Stack<string>();
   }
 
+/*
+
+### 1. generateParsingTable()
+Este método construye la tabla de parsing LL(1), que es esencial para que el analizador sintáctico sepa qué reglas aplicar en cada paso del análisis.
+
+#### Pasos detallados:
+
+1. Inicialización de la tabla:
+   typescript
+   const table: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
+   
+   Se crea una tabla vacía, que tendrá como claves los no terminales de la gramática y, para cada uno de ellos, un conjunto de entradas que indican qué producción aplicar para cada terminal posible.
+
+2. Recorrer cada no terminal y sus producciones:
+   typescript
+   for (const [nonTerminal, productions] of Object.entries(this.grammar)) {
+     table[nonTerminal] = {};
+   
+   La gramática está almacenada como un objeto donde cada clave es un no terminal y su valor es un arreglo de producciones. Por ejemplo, E: [['T', 'Ep']].
+
+3. Procesar las producciones para cada no terminal:
+   Cada producción de un no terminal es analizada para calcular qué terminales pueden aparecer en el inicio de una derivación a partir de esa producción. Esto se hace utilizando el conjunto First.
+
+   - Para cada producción, obtiene su conjunto First mediante la función getFirstSet:
+     typescript
+     const firstSet = this.getFirstSet(production);
+     
+
+   - Si el conjunto First de la producción contiene terminales, se agregan a la tabla:
+     typescript
+     for (const terminal of firstSet) {
+       if (terminal !== 'Epsilon') {
+         table[nonTerminal][terminal] = production;
+       }
+     }
+     
+
+     Es decir, se agregan las producciones a la tabla para cada terminal que esté en el conjunto First de la producción. Si un no terminal produce una secuencia que empieza con un terminal, la tabla indica que esa producción se debe aplicar cuando se encuentre ese terminal en la entrada.
+
+   - Manejo de Epsilon: Si un conjunto First contiene Epsilon, entonces debemos considerar los terminales del conjunto Follow del no terminal. Esto se hace para manejar el caso en que la producción puede generar una secuencia vacía.
+
+     typescript
+     if (firstSet.has('Epsilon')) {
+       const followSet = this.followSets[nonTerminal];
+       for (const terminal of followSet) {
+         table[nonTerminal][terminal] = ['Epsilon'];
+       }
+     }
+     
+
+     En este paso, se agrega la producción Epsilon a la tabla para todos los terminales en el conjunto Follow de ese no terminal. Esto permite que el analizador maneje producciones que pueden ser vacías (como Epsilon).
+
+4. Guardar la tabla de parsing:
+   Finalmente, la tabla generada se guarda como un archivo JSON en el directorio especificado (outputDir), lo que permite almacenarla y usarla posteriormente en el proceso de análisis sintáctico.
+
+   typescript
+   fs.writeFileSync(filePath, JSON.stringify(this.parsingTable, null, 2), 'utf-8');
+
+
+*/
   generateParsingTable(): void {
     const table: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
 
@@ -184,6 +242,17 @@ grammar: { [nonTerminal: string]: string[][] } = {
     console.log(`Tabla de parsing guardada en: ${filePath}`);
   }
 
+
+  /*
+  Calcula el conjunto First de una producción específica.
+
+  Itera sobre los símbolos de la producción:
+  Si es un terminal, lo agrega directamente al conjunto First.
+  Si es un no terminal, agrega todos los terminales de su conjunto First. Si contiene Epsilon, continúa con el siguiente símbolo de la producción.
+  Si el símbolo es Epsilon, lo agrega al conjunto First.
+  Retorna el conjunto: Devuelve el conjunto First de la producción.
+
+  */
   private getFirstSet(production: string[]): Set<string> {
     const firstSet = new Set<string>();
 
@@ -262,8 +331,10 @@ grammar: { [nonTerminal: string]: string[][] } = {
         // Si el símbolo en el tope de la pila es un no terminal
       } else if (this.isNonTerminal(stackTop)) {
         const production = this.parsingTable[stackTop][inputSymbol];
+        // Si la producción existe en la tabla de parsing, desapilar y apilar la producción
         if (production) {
           this.stack.pop();
+          // Si la producción no es Epsilon, apilar los símbolos de la producción en orden inverso
           if (!(production.length === 1 && production[0] === 'Epsilon')) {
             for (let i = production.length - 1; i >= 0; i--) {
               this.stack.push(production[i]);
