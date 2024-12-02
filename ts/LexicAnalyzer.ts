@@ -11,6 +11,7 @@ class LexicAnalyzer {
     private stack: Stack<number>; // stack para almacenar los índices
     private lastLexema: string;
     private afdTable: any;
+    private tokenOmision: number;
 
     constructor();
     constructor(afdTable: any);
@@ -25,8 +26,11 @@ class LexicAnalyzer {
         this.stack = new Stack<number>(); // stack para almacenar los índices
         this.lastLexema = "";
         this.afdTable = afdTable || null;
+        this.tokenOmision = -2;
     }
-
+    public setTokenOmision(token: number): void {
+        this.tokenOmision = token;
+    }
     //Retorna la instancia actual de la clase LexicAnalyzer
     public getState(): LexicAnalyzer {
         return this;
@@ -49,6 +53,7 @@ class LexicAnalyzer {
     public setAfdTable(afdTable: any) {
         this.afdTable = afdTable;
         this.setSigma(this.sigma);
+        this.tokenOmision = -2;
     }
 
     // Asigna un sigma para analizar
@@ -115,7 +120,7 @@ class LexicAnalyzer {
             this.currentIndex = this.endLexema + 1;
             this.lastLexema = lexema;
 
-            if (this.token === SimbolosEspeciales.OMITIR)
+            if (this.token === this.tokenOmision)
                 return this.yylex();  // Salta los tokens omitidos
             else
                 return this.token;

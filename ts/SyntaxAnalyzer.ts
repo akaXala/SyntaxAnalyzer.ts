@@ -1,3 +1,5 @@
+import { LexicAnalyzer } from "./LexicAnalyzer";
+import JSON from "@/ts/AFD/Grammar.json"
 /* 
 
 # Clase para el analizador sintáctico:
@@ -31,7 +33,33 @@ Donde el follow de E es {"$", ")"}
 Donde el follow de T es {"$", "+", ")"}
 Donde el follow de F es {"$", "+", "*", ")"}
 
+
+Simbolos no especiales [\ -:]OR=OR[\?-\[]OR[\]-~]OR[-þ]
+Simpolos especiales \\&(<OR>OR\\OR|OR-OR;)
+ARROW -&>
+NOTERMINAL <&[\ -~]OR[-þ]&>
+TERMINAL (\\&(<OR>OR\\OR|OR-))OR([\ -;]OR=OR[\?-\[]OR[\]-~]OR[-þ])
+OR \\|
+DOTCOMMA \\;
+OMIT ((\\ )+)OR(
+
+)
+
+
 */
+enum TOKEN {
+  END = 0,
+  OMIT = 10,
+  FLECHA = 20,
+  DOTCOMMA = 30,
+  NONTERMINAL = 40,
+  EPSILON = 50,
+  OR = 60,
+  TERMINAL = 70
+}
+interface Symbol {
+  data: string;
+}
 
 class NodeSimb {
   nameSimb: string;
@@ -46,10 +74,21 @@ class NodeSimb {
 
 class SyntaxAnalyzer {
   // Lista de reglas de producción
-  G_Rules: Array<{ nameSimb: NodeSimb; list: NodeSimb[] }> = []; 
+  G_Rules: Array<{ nameSimb: NodeSimb; list: NodeSimb[] }>;
+  terminal: Set<string>;
+  nonTerminal: Set<string>;
+  grammar: string;
+  LA: LexicAnalyzer = new LexicAnalyzer(JSON);
+  numberRules: number;
 
-  constructor(rules: Array<{ nameSimb: NodeSimb; list: NodeSimb[] }>) {
-    this.G_Rules = rules;
+
+
+  constructor(rules?: Array<{ nameSimb: NodeSimb; list: NodeSimb[] }>) {
+    this.G_Rules = rules || [];
+    this.grammar = "";
+    this.nonTerminal = new Set<string>();
+    this.terminal = new Set<string>();
+    this.numberRules = 0;
   }
 
   first(L: NodeSimb[]): Set<string> {
@@ -65,7 +104,7 @@ class SyntaxAnalyzer {
     // Si L[0] es no terminal, se recorren las reglas de producción
     for (let i = 0; i < this.G_Rules.length; i++) {
       if (this.G_Rules[i].nameSimb.nameSimb === L[0].nameSimb) {
-          // Donde R es el conjunto de terminales y/o epsilons
+        // Donde R es el conjunto de terminales y/o epsilons
         // Añadir el conjunto First de la lista de la regla coincidente
         R = new Set([...R, ...this.first(this.G_Rules[i].list)]);
       }
@@ -133,8 +172,151 @@ class SyntaxAnalyzer {
 
     return R;
   }
+  public parse(): boolean {
+    if (this.g()) {
+      const token = this.LA.yylex();
+      if (token === TOKEN.END) {
+        return true;
+      }
+    }
+    return false;
+  }
+  private g(): boolean {
+    if (this.rules()) {
+      return true;
+    }
+    return false;
+  }
+  private rules(): boolean {
+    if (this.rule()) {
+      const token: number = this.LA.yylex();
+      if (token === TOKEN.DOTCOMMA) {
+        if (this.rulesP()) {
+          return true;
+        }
+      }
+      //this.LA.undoToken()
+    }
+    return false
+  }
+
+  private rulesP(): boolean {
+    const currentLA: LexicAnalyzer = new LexicAnalyzer();
+    currentLA.setState(this.LA.getState());
+    if (this.rule()) {
+      const token: number = currentLA.yylex();
+      if (token === TOKEN.DOTCOMMA) {
+        if (this.rulesP()) {
+          return true;
+        }
+      }
+      //this.LA.undoToken();
+      return false;
+    }
+    this.LA.setState(currentLA.getState());
+    return true;
+  }
+  private rule(): boolean {
+    const nonTerminal: Symbol = { data: "" };
+    if (this.leftSide(nonTerminal)) {
+      const token: number = this.LA.yylex();
+      if (token === TOKEN.FLECHA) {
+        if (this.rightSides(nonTerminal)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  private leftSide(nonTerminal: Symbol): boolean {
+    const token: number = this.LA.yylex();
+    if (token === TOKEN.NONTERMINAL) {
+      nonTerminal.data = this.LA.yytext();
+      nonTerminal.data = nonTerminal.data.substring(1, nonTerminal.data.length - 1);
+      return true;
+    }
+    //this.LA.undoToken();
+    return false;
+  }
+  private rightSides(nonTerminal: Symbol): boolean {
+    const list: NodeSimb[] = new Array<NodeSimb>();
+    if (this.rightSide(list)) {
+      this.G_Rules[this.numberRules++] = { nameSimb: new NodeSimb(nonTerminal.data, false), list: list };
+      if (this.rightSidesP(nonTerminal)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  private rightSidesP(nonTerminal: Symbol): boolean {
+    const list: NodeSimb[] = new Array<NodeSimb>();
+    const token: number = this.LA.yylex();
+    if (token === TOKEN.OR) {
+      if (this.rightSide(list)) {
+        this.G_Rules[this.numberRules++] = { nameSimb: new NodeSimb(nonTerminal.data, false), list: list };
+        if (this.rightSidesP(nonTerminal)) {
+          return true;
+        }
+      }
+    }
+    this.LA.undoToken();
+    return true;
+  }
+  private rightSide(list: NodeSimb[]): boolean {
+    if (this.symbols(list)) {
+      return true;
+    }
+    return false;
+  }
+  private symbols(list: NodeSimb[]): boolean {
+    const symbol: NodeSimb = new NodeSimb("", false);
+    const token: number = this.LA.yylex();
+    switch (token) {
+      case TOKEN.NONTERMINAL:
+        symbol.nameSimb = this.LA.yytext();
+        symbol.nameSimb = symbol.nameSimb.substring(1, symbol.nameSimb.length - 1);
+        break;
+      case TOKEN.TERMINAL:
+        symbol.nameSimb = this.LA.yytext();
+        symbol.terminal = true;
+        break;
+      default:
+        this.LA.undoToken();
+        return false;
+    }
+    if (this.symbolsP(list)) {
+      list.push(symbol);
+      return true;
+    }
+    return false;
+  }
+  private symbolsP(list: NodeSimb[]): boolean {
+    const symbol: NodeSimb = new NodeSimb("", false);
+    const token: number = this.LA.yylex();
+    switch (token) {
+      case TOKEN.NONTERMINAL:
+        symbol.nameSimb = this.LA.yytext();
+        symbol.nameSimb = symbol.nameSimb.substring(1, symbol.nameSimb.length - 1);
+        console.log("NONTERMINAL");
+        break;
+      case TOKEN.TERMINAL:
+        symbol.nameSimb = this.LA.yytext();
+        symbol.terminal = true;
+        console.log("TERMINAL");
+        break;
+      default:
+        this.LA.undoToken();
+        return true;
+    }
+    if (this.symbolsP(list)) {
+      list.push(symbol);
+      return true;
+    }
+    return false;
+  }
+
 }
 
 
 export { NodeSimb };
-export { SyntaxAnalyzer};
+export { SyntaxAnalyzer };
