@@ -1,9 +1,19 @@
-import Prueba from "@/ts/prueba";
 import Image from "next/image";
+// import { testGrammarFirstFollow } from "@/ts/tests/prueba3";
+// import { testGrammar } from "@/ts/tests/grammarTest";
+import { testLL1 } from "@/ts/LL1";
+//import { testLexicAnalyzer } from "@/ts/tools/LexicAnalyzer";
+//import { LexicAnalyzer } from "@/ts/tools/LexicAnalyzer";
+//import test from "node:test";
 
 export default function Home() {
-  const prueba = new Prueba();
-  prueba.imprimirHolaMundo();
+
+  //testLexicAnalyzer(" 9.12 +    3.14 ");
+  //testLL1("id + id");
+const inputString = '2+1';
+testLL1(inputString);
+
+
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
