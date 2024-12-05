@@ -1,4 +1,4 @@
-import { LexicAnalyzer } from "./LexicAnalyzer";
+import { LexicAnalyzer } from "@/ts/tools/LexicAnalyzer";
 import JSON from "@/ts/AFD/Grammar.json"
 const DEBUG = false;
 /* 

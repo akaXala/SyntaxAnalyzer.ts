@@ -4,6 +4,8 @@ class SimbolosEspeciales {
     public static readonly FIN: number = 0;
     // public static readonly FIN: string = String.fromCharCode(0);
     public static readonly TOKENERROR: number = 9999;
+
+    public static readonly ERRORSA: string = '9999';
     // que OMITIR sea el valor ascii 32 (espacio)
     public static readonly OMITIR: number = 70;
 }
