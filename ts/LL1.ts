@@ -2,184 +2,61 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Stack } from '@/ts/tools/Stack';
 import { SyntaxAnalyzer } from '@/ts/SyntaxAnalyzer';
+import { testLexicAnalyzer } from '@/ts/tools/LexicAnalyzer';
 
+// LL1 Parser Class
 class LL1 {
   parsingTable: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
   stack: Stack<string>;
   inputString: string[] = [];
 
+  firstSets: { [key: string]: Set<string> } = {};
+  followSets: { [key: string]: Set<string> } = {};
+  grammar: { [nonTerminal: string]: Array<Array<string>> } = {};
 
-  /*
-  Conjuntos esperados por Grammar.ts
-
-  TABLA DE PARSING O DE VALIDACIÓN DE GRAMÁTICA LL(1)
-  File: /ts/output/parsingTable.json
-
-  */
-
-
-  firstSets: { [key: string]: Set<string> } = {
-  };
-
-  followSets: { [key: string]: Set<string> } = {
-  };
-
-  grammar: { [nonTerminal: string]: Array<Array<string>> } = {
-  };
-
-
-  // GRAMATICA DE ARITMÉTICA
-
-  //firstSets: { [key: string]: Set<string> } = {
-  //  E: new Set(['(', 'id']),
-  //  Ep: new Set(['+', 'EPSILON']),
-  //  T: new Set(['(', 'id']),
-  //  Tp: new Set(['*', 'EPSILON']),
-  //  F: new Set(['(', 'id']),
-  //};
-
-  //followSets: { [key: string]: Set<string> } = {
-  //  E: new Set(['$', ')']),
-  //  Ep: new Set(['$', ')']),
-  //  T: new Set(['+', '$', ')']),
-  //  Tp: new Set(['+', '$', ')']),
-  //  F: new Set(['*', '+', '$', ')']),
-  //};
-
-  //grammar: { [nonTerminal: string]: string[][] } = {
-  //  E: [['T', 'Ep']],
-  //  Ep: [['+', 'T', 'Ep'], ['EPSILON']],
-  //  T: [['F', 'Tp']],
-  //  Tp: [['*', 'F', 'Tp'], ['EPSILON']],
-  //  F: [['(', 'E', ')'], ['id']],
-  //};
-
-
-
-
-  // GRAMATICA DE IF-ELSE
-  /*
-  firstSets: { [key: string]: Set<string> } = {
-    S: new Set(['if', 'id']),
-    C: new Set(['id']),
-    A: new Set(['id']),
-  };
-  
-  followSets: { [key: string]: Set<string> } = {
-    S: new Set(['$', 'else']),
-    C: new Set(['then']),
-    A: new Set(['$', 'else']),
-  };
-  
-  grammar: { [nonTerminal: string]: string[][] } = {
-    S: [['if', 'C', 'then', 'S', 'else', 'S'], ['A']],
-    C: [['id', '=', 'id']],
-    A: [['id', ':=', 'id']],
-  };
-  */
-
-
-
-
-
-  // GRAMATICA DE LISTAS
-  /*
-  firstSets: { [key: string]: Set<string> } = {
-   L: new Set(['id']),
-   Lp: new Set([',', 'EPSILON']),
- };
- 
- followSets: { [key: string]: Set<string> } = {
-   L: new Set(['$', ',']),
-   Lp: new Set(['$', ',']),
- };
- 
- grammar: { [nonTerminal: string]: string[][] } = {
-   L: [['id', 'Lp']],
-   Lp: [[',', 'id', 'Lp'], ['EPSILON']],
- };
- */
-
-
-
-
-  // GRAMATICA DE EXPRESIONES BOOLEANAS
-  /*
-  firstSets: { [key: string]: Set<string> } = {
-    B: new Set(['id']),
-    Bp: new Set(['and', 'EPSILON']),
-    L: new Set(['id']),
-  };
-  
-  followSets: { [key: string]: Set<string> } = {
-    B: new Set(['$', ')']),
-    Bp: new Set(['$', ')']),
-    L: new Set(['$', 'and', ')']),
-  };
-  
-  grammar: { [nonTerminal: string]: string[][] } = {
-    B: [['L', 'Bp']],
-    Bp: [['and', 'L', 'Bp'], ['EPSILON']],
-    L: [['id']],
-  };
-  */
-
-
-
-  // GRAMATICA DE WHILE
-  /*
-  firstSets: { [key: string]: Set<string> } = {
-    S: new Set(['while', 'id']),
-    C: new Set(['id']),
-    A: new Set(['id']),
-  };
-  
-  followSets: { [key: string]: Set<string> } = {
-    S: new Set(['$', 'do']),
-    C: new Set(['do']),
-    A: new Set(['$', 'do']),
-  };
-  
-  grammar: { [nonTerminal: string]: string[][] } = {
-    S: [['while', 'C', 'do', 'S'], ['A']],
-    C: [['id', '>', 'id']],
-    A: [['id', ':=', 'id']],
-  };
-  */
-
-
+  terminals: Set<string> = new Set();
+  nonTerminals: Set<string> = new Set();
 
   constructor(private outputDir: string = './') {
     this.stack = new Stack<string>();
   }
+
+  // Initialize the LL1 parser with the syntax analyzer
   init(SA: SyntaxAnalyzer): void {
-    console.log(SA.G_Rules);
     const Rules = SA.getG_Rules();
-    const findNode = (name: string) => Rules.find(r => r.nameSimb.nameSimb === name)?.nameSimb;
-    const findNodes = (name: string) => SA.G_Rules.filter(r => r.nameSimb.nameSimb === name)
+
+    const findNode = (name: string) =>
+      Rules.find((r) => r.nameSimb.nameSimb === name)?.nameSimb;
+    const findNodes = (name: string) =>
+      SA.G_Rules.filter((r) => r.nameSimb.nameSimb === name);
+
     const followSets: { [key: string]: Set<string> } = {};
     const firstSets: { [key: string]: Set<string> } = {};
-    const grammar: { [nonTerminal: string]: Array<Array<string>> } = {}
+    const grammar: { [nonTerminal: string]: Array<Array<string>> } = {};
 
+    // Build the grammar and collect non-terminals
     SA.nonTerminal.forEach((nonTerminal) => {
+      this.nonTerminals.add(nonTerminal); // Collect non-terminals
       let nodes = findNodes(nonTerminal);
-      let production: string[];
       nodes.forEach((x) => {
         if (x.nameSimb.nameSimb === nonTerminal) {
-          if (!grammar[nonTerminal]) grammar[nonTerminal] = []
-          production = []
+          if (!grammar[nonTerminal]) grammar[nonTerminal] = [];
+          const production: string[] = [];
           x.list.forEach((y) => {
-            //console.log(y.nameSimb, y.terminal);
-            production.push(y.nameSimb)
+            production.push(y.nameSimb);
+            // Collect terminals (symbols that are not non-terminals and not EPSILON)
+            if (!this.nonTerminals.has(y.nameSimb) && y.nameSimb !== 'EPSILON') {
+              this.terminals.add(y.nameSimb);
+            }
           });
-          //console.log(production);
           grammar[nonTerminal].push(production);
-        };
-      })
+        }
+      });
     });
-    const noTerminals = [...SA.nonTerminal];
-    for (let i = 0; i < noTerminals.length; i++) {
 
+    // Calculate FIRST and FOLLOW sets
+    const noTerminals = [...this.nonTerminals];
+    for (let i = 0; i < noTerminals.length; i++) {
       const node = findNode(noTerminals[i]);
       followSets[noTerminals[i]] = SA.follow(node!);
       firstSets[noTerminals[i]] = SA.first([node!]);
@@ -187,68 +64,58 @@ class LL1 {
     this.followSets = followSets;
     this.firstSets = firstSets;
     this.grammar = grammar;
-    console.log(":::Test:::");
-    console.log(this.followSets);
-    console.log(this.firstSets);
-    console.log(this.grammar);
   }
+
+  // Generate the parsing table
   generateParsingTable(): void {
     const table: { [nonTerminal: string]: { [terminal: string]: string[] } } = {};
 
-    // Inicializar la tabla con un objeto vacío para cada no terminal
     for (const [nonTerminal, productions] of Object.entries(this.grammar)) {
       table[nonTerminal] = {};
 
       for (const production of productions) {
-        // Obtener el conjunto first de la producción
+        // Get FIRST set of the production
         const firstSet = this.getFirstSet(production);
 
-        // Agregar la producción a la tabla para cada terminal en el conjunto first
+        // Add production to the table for each terminal in FIRST set
         for (const terminal of firstSet) {
-
-          // Si el terminal es EPSILON, no agregarlo a la tabla
           if (terminal !== 'EPSILON') {
             table[nonTerminal][terminal] = production;
           }
         }
 
-        // Si EPSILON está en el conjunto first, agregar la producción a la tabla para cada terminal en el conjunto follow
+        // If EPSILON is in FIRST set, add production for each terminal in FOLLOW set
         if (firstSet.has('EPSILON')) {
           const followSet = this.followSets[nonTerminal];
           for (const terminal of followSet) {
-
-            // Si el terminal es EPSILON, no agregarlo a la tabla
             table[nonTerminal][terminal] = ['EPSILON'];
           }
         }
       }
     }
 
-    // Guardar la tabla de parsing
+    // Save the parsing table
     this.parsingTable = table;
 
-    // Guardar la tabla de parsing en un archivo JSON
+    // Optionally save the parsing table to a JSON file
     const filePath = path.join(this.outputDir, 'parsingTable.json');
     fs.writeFileSync(filePath, JSON.stringify(this.parsingTable, null, 2), 'utf-8');
     console.log(`Tabla de parsing guardada en: ${filePath}`);
   }
 
+  // Compute FIRST set for a production
   private getFirstSet(production: string[]): Set<string> {
     const firstSet = new Set<string>();
 
-    // Iterar sobre los símbolos de la producción
     for (const symbol of production) {
-      // Si el símbolo es un terminal, agregarlo al conjunto first y detener la iteración
       if (this.firstSets[symbol]) {
         for (const terminal of this.firstSets[symbol]) {
           firstSet.add(terminal);
         }
 
-        // Si EPSILON no está en el conjunto first del símbolo, detener la iteración
         if (!this.firstSets[symbol].has('EPSILON')) {
           break;
         }
-        // Si el símbolo es un no terminal, agregar el conjunto first del no terminal al conjunto first de la producción
       } else {
         firstSet.add(symbol);
         break;
@@ -258,13 +125,14 @@ class LL1 {
     return firstSet;
   }
 
-  parse(input: string): void {
-    this.stack.clear(); // Limpia la pila antes de usarla
-    this.stack.push('$'); // Agrega el símbolo de fin de cadena a la pila
+  // Parse the tokens
+  parse(tokens: string[]): void {
+    this.stack.clear();
+    this.stack.push('$'); // End of input symbol
     const startSymbol = Object.keys(this.parsingTable)[0];
     this.stack.push(startSymbol);
-    this.inputString = input.split(' ');
-    this.inputString.push('$'); // Agrega el símbolo de fin de cadena al final de la cadena de entrada
+    this.inputString = tokens;
+    this.inputString.push('$'); // Add end of input symbol
 
     const colWidths = {
       pila: 30,
@@ -283,36 +151,31 @@ class LL1 {
     console.log(formatRow('Pila', 'Entrada', 'Acción'));
     console.log('-'.repeat(colWidths.pila + colWidths.entrada + colWidths.accion));
 
-
     while (!this.stack.isEmpty()) {
       const stackTop = this.stack.peek()!;
       const inputSymbol = this.inputString[0];
       let action = '';
 
-      // Actualizamos aquí: convertimos la pila en una cadena legible
+      // Display current stack, input, and action
       console.log(
         formatRow(this.stack.storage.join(' '), this.inputString.join(' '), action)
       );
 
-      // Si el símbolo en el tope de la pila y el símbolo de entrada son iguales a '$', aceptar
       if (stackTop === '$' && inputSymbol === '$') {
         action = 'Aceptar';
         console.log(
           formatRow(this.stack.storage.join(' '), this.inputString.join(' '), action)
         );
         break;
-
-        // Si el símbolo en el tope de la pila y el símbolo de entrada son iguales, desapilar y avanzar
       } else if (stackTop === inputSymbol) {
         this.stack.pop();
         this.inputString.shift();
         action = `Coincidir '${inputSymbol}'`;
-
-        // Si el símbolo en el tope de la pila es un no terminal
-      } else if (this.isNonTerminal(stackTop)) {
+      } else if (this.nonTerminals.has(stackTop)) {
         const production = this.parsingTable[stackTop][inputSymbol];
         if (production) {
           this.stack.pop();
+
           if (!(production.length === 1 && production[0] === 'EPSILON')) {
             for (let i = production.length - 1; i >= 0; i--) {
               this.stack.push(production[i]);
@@ -341,47 +204,63 @@ class LL1 {
       );
     }
   }
-
-  isNonTerminal(symbol: string): boolean {
-    return this.parsingTable.hasOwnProperty(symbol);
-  }
 }
 
-function testLL1(): void {
-  const outputDir = './ts/output'; // Directorio donde se guardará el JSON
+// Function to test the LL1 parser with input from the lexical analyzer
+function testLL1(inputString: string): void {
+  const outputDir = './ts/output';
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-
-
   const parser = new LL1(outputDir);
   const SA = new SyntaxAnalyzer();
-  let input = "<S> -> while <C> do <S> | <A>;\n" +
-    "<C> -> id > id ;\n" +
-    "<A> -> id := id"
+
+  // Define your grammar here
+  let input =
+    '<E> -> <T> <Ep>\n;' +
+    '<Ep> -> + <T> <Ep> | EPSILON\n;' +
+    '<T> -> <F> <Tp>\n;' +
+    '<Tp> -> * <F> <Tp> | EPSILON\n;' +
+    '<F> -> ( <E> ) | id;';
   SA.setGrammar(input);
   SA.parse();
   parser.init(SA);
   parser.generateParsingTable();
 
-  // input de aritmética
-  //const inputString = 'id + id * id';
+  // Mapping of tokens from the lexical analyzer to the grammar terminals
+  const tokenMap: { [key: string]: string } = {
+    '50': 'id',    // '50' is the code for 'id'
+    '10': '+',     // '+' operator
+    '20': '*',     // '*' operator
+    '30': '(',     // '(' left parenthesis
+    '40': ')',     // ')' right parenthesis
+    // Add other tokens as necessary
+  };
 
-  // input de if-else
-  //const inputString = 'if id = id then id := id else id := id';
+  // Get tokens from the lexical analyzer
+  const tokensLA = testLexicAnalyzer(inputString); // e.g., returns ["50", "10", "50"]
 
-  // input de listas
-  //const inputString = 'id , id , id';
+  // Map tokens to parser terminals
+  const parserTokens = tokensLA.map((token) => {
+    const terminal = tokenMap[token];
+    if (terminal) {
+      return terminal;
+    } else {
+      console.warn(`Advertencia: Token no reconocido: '${token}'`);
+      return 'UNKNOWN'; // Agregamos un token 'UNKNOWN' para manejarlo en el parser
+    }
+    
+  });
 
-  // input de expresiones booleanas
-  //const inputString = 'id and id and id';
+  // Display the tokens obtained and mapped
+  //console.log('Tokens del analizador léxico:', tokensLA);
+  console.log('Tokens para el parser:', parserTokens);
 
-  // input de while
-  const inputString = 'while id > id do id := id';
+  // Parse the tokens
+  parser.parse(parserTokens);
 
-
-  parser.parse(inputString);
+  // Additional logic for displaying results or handling errors can be added here
 }
 
 export { LL1 };

@@ -1,6 +1,8 @@
 import { SimbolosEspeciales } from '@/ts/tools/SimbolosEspeciales';
 import { Stack } from '@/ts/tools/Stack';
 
+import JSON from '@/ts/AFD/AFD.json';
+
 class LexicAnalyzer {
     private sigma: string;
     private isEdoAcept: boolean;
@@ -141,4 +143,26 @@ class LexicAnalyzer {
     }
 }
 
+// Funcion de test para probar el analizador lexico
+function testLexicAnalyzer(input: string) {  // Modificado para aceptar una cadena de entrada
+    const lexicAnalyzer = new LexicAnalyzer(JSON);
+    lexicAnalyzer.setSigma(input);  // Establece la cadena de entrada
+    let token = lexicAnalyzer.yylex();
+    const tokens: string[] = [];  // Array para almacenar los tokens
+
+    while (token !== SimbolosEspeciales.FIN) {
+        tokens.push(token.toString());  // Agrega el token al array
+        token = lexicAnalyzer.yylex(); 
+    }
+
+    console.log("TokensLA: ", tokens);  // Muestra todos los tokens
+
+    return tokens;  // Retorna el array de tokens
+
+}
+
+// Ejemplo de uso
+//testLexicAnalyzer("");  // Llama a la función con una cadena de prueba
+
+export { testLexicAnalyzer };
 export { LexicAnalyzer };
