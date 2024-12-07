@@ -90,6 +90,12 @@ class SyntaxAnalyzer {
     this.LA = new LexicAnalyzer(JSON);
     this.LA.setTokenOmision(TOKEN.OMIT);
   }
+  public getTerminals(): Set<string> {
+    return this.terminal;
+  }
+  public getNonTerminals(): Set<string> {
+    return this.nonTerminal;
+  }
   public setGrammar(grammar: string): void {
     this.grammar = grammar;
     this.LA.setSigma(grammar);
