@@ -1,12 +1,15 @@
 import { NodeSimb, SyntaxAnalyzer } from "@/ts/SyntaxAnalyzer";
 import { ItemLR0, SetItemsLR0 } from "@/ts/tools/ItemLR0";
-import { LexicAnalyzer } from "./tools/LexicAnalyzer";
-import { Queue } from "./tools/Queue";
+import { LexicAnalyzer } from "@/ts/tools/LexicAnalyzer";
+import { Queue } from "@/ts/tools/Queue";
+import { Stack } from "@/ts/tools/Stack";
+import { SimbolosEspeciales } from "@/ts/tools/SimbolosEspeciales";
 import * as fs from 'fs';
 import * as path from 'path';
+import { act } from "react";
 
 const DEBUGCERRADURA = false;
-const DEBUGCREATETABLE = true;
+const DEBUGCREATETABLE = false;
 const DEBUGSTARTSA = false;
 
 const Test1 = '<Ep> -> <E>\n;' +
@@ -21,27 +24,27 @@ const Test2 = '<Ep> -> <E>\n;' +
 
 class LR0 {
     //Gramatica
-    LA: LexicAnalyzer;
-    SA: SyntaxAnalyzer;
-    grammarRead: string;
-    grammar: { [nonTerminal: string]: Array<Array<string>> };
-    terminals: Set<string>;
-    nonTerminals: Set<string>;
-    sigma: string;
-    table: Map<{ id: number, symbol: string }, string>;
+    private LA: LexicAnalyzer;
+    private SA: SyntaxAnalyzer;
+    private grammar: string;
+    private terminals: Set<string>;
+    private nonTerminals: Set<string>;
+    private table: Map<{ id: number, symbol: string }, string>;
+    private tokens: Map<number, string>;
+    private tableProduction: Array<{ Stack: string, Sigma: string, action: string }>;
 
     constructor() {
         this.LA = new LexicAnalyzer();
         this.SA = new SyntaxAnalyzer()
-        this.grammar = {};
         this.terminals = new Set();
         this.nonTerminals = new Set();
-        this.sigma = "";
-        this.grammarRead = Test1;
+        this.grammar = Test1;
         this.table = new Map();
+        this.tokens = new Map();
+        this.tableProduction = new Array();
     }
     private startSA(): void {
-        this.SA.setGrammar(this.grammarRead);
+        this.SA.setGrammar(this.grammar);
         this.SA.parse();
         this.terminals = this.SA.getTerminals();
         this.nonTerminals = this.SA.getNonTerminals();
@@ -51,13 +54,13 @@ class LR0 {
         if (DEBUGSTARTSA) console.log("Rules", this.SA.getG_Rules());
     }
 
-    createLR0() {
+    public createLR0() {
         if (DEBUGCREATETABLE) console.log("-------Start DEBUG create table LR0-------")
         const C: Set<SetItemsLR0> = new Set<SetItemsLR0>();
         let Sj: SetItemsLR0 = new SetItemsLR0(0);
         let setItems: Set<ItemLR0> = new Set<ItemLR0>();
         const Q: Queue<SetItemsLR0> = new Queue<SetItemsLR0>();
-        this.SA.setGrammar(this.grammarRead);
+        this.SA.setGrammar(this.grammar);
         this.startSA();
 
         //console.log(this.terminals)
@@ -122,7 +125,81 @@ class LR0 {
         if (DEBUGCREATETABLE) console.log(`Tabla de parsing guardada en: ${filePath}`);
     }
 
-    cerradura(C: Set<ItemLR0>): Set<ItemLR0> {
+    public initLA(tokens: Map<number, string>, tokenOmmit: number, AFD: any): void {
+        this.tokens = tokens;
+        tokens.set(0, '$')
+        this.LA.setAfdTable(AFD);
+        this.LA.setTokenOmision(tokenOmmit);
+    }
+
+    public parse(sigma: string): boolean {
+        const Q: Stack<{ symbol: string, state: number }> = new Stack<{ symbol: string, state: number }>();
+        this.LA.setSigma(sigma);
+        let sigmaPost: string = "";
+        let Token = this.LA.yylex();
+        while (Token != 0) {
+            sigmaPost += this.LA.yytext();
+            Token = this.LA.yylex();
+        } sigmaPost += '$';
+        this.LA.setSigma(sigma);
+        console.log(sigmaPost);
+        //Start the stack
+        Q.push({ symbol: "$", state: 0 });
+
+        Token = this.LA.yylex();
+        const Serch = (id: number, symbol: string, table: Map<{ id: number, symbol: string }, string>): string | undefined => {
+            for (const key of table.keys()) {
+                if (key.id === id && key.symbol === symbol) {
+                    return table.get(key)!;
+                }
+            }
+            return undefined;
+        }
+        const StackParserString = (Q: Stack<{ symbol: string, state: number }>): string => {
+            let result = "";
+            for (const item of Q.storage) {
+                result += '[' + item.symbol + item.state.toString() + '] ';
+            }
+            return result
+        }
+        while (Token != SimbolosEspeciales.TOKENERROR) {
+
+            console.log(`Token: ${Token} => ${this.tokens.get(Token)}`);
+            const action = Serch(Q.peek()!.state, this.tokens.get(Token)!, this.table);
+            this.tableProduction.push({ Stack: StackParserString(Q), Sigma: sigmaPost, action: action! });
+
+            if (this.tokens.get(Token) === undefined) {
+                console.log("Token no identificado")
+                return false;
+            }
+            if (action === undefined) {
+                console.log("Error Sintacticamente")
+                return false;
+            }
+            //const action = this.table.get({ id: Q.peek()!.state, symbol: this.tokens.get(Token)! });
+            //console.log(`Key {id: ${Q.peek()!.state}, symbol: ${this.tokens.get(Token)}} => ${action}`);
+            if (action![0] == 'r') {
+                const rule = this.SA.getG_Rules()[parseInt(action!.substring(1))];
+                for (let i = 0; i < rule.list.length; i++) Q.pop();
+                Q.push({ symbol: rule.nameSimb.nameSimb, state: parseInt(Serch(Q.peek()!.state, rule.nameSimb.nameSimb, this.table)!.substring(1)) });
+                this.LA.undoToken();
+            } else if (action![0] == 'd') {
+                const derivation = parseInt(action!.substring(1));
+                sigmaPost = sigmaPost.substring(this.LA.yytext().length);
+                Q.push({ symbol: this.tokens.get(Token)!, state: derivation });
+            } else {
+                console.log("Table Production", this.tableProduction);
+                console.log("Cadena aceptada");
+                return true;
+            }
+            Token = this.LA.yylex();
+        }
+        console.log("Table Production", this.tableProduction);
+        console.log("Error token no identificado");
+        return false;
+    }
+
+    private cerradura(C: Set<ItemLR0>): Set<ItemLR0> {
         if (DEBUGCERRADURA) console.log("Entra A función con C:", C)
         let result: Set<ItemLR0> = new Set<ItemLR0>();
         const temp: Set<ItemLR0> = new Set<ItemLR0>();
@@ -157,7 +234,7 @@ class LR0 {
         if (DEBUGCERRADURA) console.log("result:", result)
         return result;
     }
-    move(C: Set<ItemLR0>, symbol: string): Set<ItemLR0> {
+    private move(C: Set<ItemLR0>, symbol: string): Set<ItemLR0> {
         const result: Set<ItemLR0> = new Set<ItemLR0>();
         for (const item of C) {
             const list: NodeSimb[] = this.SA.getG_Rules()[item.getruleNumber()].list;
@@ -170,19 +247,23 @@ class LR0 {
         }
         return result;
     }
-    goTo(C: Set<ItemLR0>, symbol: string): Set<ItemLR0> {
+    private goTo(C: Set<ItemLR0>, symbol: string): Set<ItemLR0> {
         return this.cerradura(this.move(C, symbol));
     }
 
 }
 function test() {
+    const filePath = path.join('./ts/AFD', 'AFD.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
     const lr0 = new LR0();
     lr0.createLR0();
+    lr0.initLA(new Map([[10, "+"], [20, "*"], [30, "("], [40, ")"], [50, "id"]]), 60, JSON.parse(data));
+    console.log(lr0.parse("5+7 * (5)"));
     //Example of how to read the JSON file
-    console.log("Reading JSON file");
+    /*console.log("Reading JSON file");
     const filePath = path.join('./ts/output', 'TableLR0.json');
     const data = fs.readFileSync(filePath, 'utf-8');
     const mapObject: Map<{ id: number, symbol: string }, string> = new Map(JSON.parse(data));
-    console.log(mapObject);
+    console.log(mapObject);*/
 }
 export { test as LR0Test };
