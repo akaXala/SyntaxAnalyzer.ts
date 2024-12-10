@@ -96,7 +96,8 @@ class LexicAnalyzer {
 
         while (this.currentIndex < this.sigma.length) {
             const currentChar = this.sigma.charCodeAt(this.currentIndex);
-
+            //console.log("currentChar: ", String.fromCharCode(currentChar));
+            //console.log("currentState: ", currentState);
             const transition = this.afdTable[currentState][currentChar];
 
             if (transition !== undefined && transition !== -1) {
@@ -152,7 +153,7 @@ function testLexicAnalyzer(input: string) {  // Modificado para aceptar una cade
 
     while (token !== SimbolosEspeciales.FIN) {
         tokens.push(token.toString());  // Agrega el token al array
-        token = lexicAnalyzer.yylex(); 
+        token = lexicAnalyzer.yylex();
     }
 
     console.log("TokensLA: ", tokens);  // Muestra todos los tokens
